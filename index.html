@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Architecture Genome Project</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a0e;
+    --bg2: #080f14;
+    --surface: #0c161d;
+    --surface2: #111e27;
+    --border: #1a2f3d;
+    --accent: #00d4aa;
+    --accent2: #0af0c8;
+    --accent-dim: rgba(0,212,170,0.12);
+    --accent-glow: rgba(0,212,170,0.04);
+    --gold: #c9a84c;
+    --gold-dim: rgba(201,168,76,0.12);
+    --text: #e8f0f5;
+    --text-dim: #7a9aad;
+    --text-muted: #3a5568;
+    --red: #ff4d6d;
+    --blue: #4d9fff;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.75;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,170,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,170,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 1; }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(5,10,14,0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+  }
+
+  .nav-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+  }
+
+  .nav-logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--accent); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 120px 32px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* radial glow */
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 800px; height: 600px;
+    background: radial-gradient(ellipse, rgba(0,212,170,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .hero h1 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: clamp(48px, 8vw, 96px);
+    line-height: 1.0;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+    animation: fadeUp 0.8s 0.1s ease both;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 40px;
+    animation: fadeUp 0.8s 0.2s ease both;
+  }
+
+  .hero-byline {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 48px;
+    animation: fadeUp 0.8s 0.25s ease both;
+  }
+
+  .hero-byline span { color: var(--text-dim); }
+
+  .hero-description {
+    max-width: 680px;
+    font-size: 20px;
+    color: var(--text-dim);
+    line-height: 1.8;
+    font-weight: 300;
+    animation: fadeUp 0.8s 0.3s ease both;
+    margin-bottom: 56px;
+  }
+
+  .hero-description strong { color: var(--text); font-weight: 400; }
+
+  .cta-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    animation: fadeUp 0.8s 0.4s ease both;
+  }
+
+  .btn-primary {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: var(--accent);
+    color: #020d10;
+    padding: 14px 28px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-block;
+    font-weight: 500;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent2);
+    box-shadow: 0 0 32px rgba(0,212,170,0.3);
+  }
+
+  .btn-secondary {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--text-dim);
+    padding: 13px 28px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-block;
+  }
+
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── HELIX VISUAL ── */
+  .helix-wrap {
+    position: absolute;
+    right: -40px; top: 50%;
+    transform: translateY(-50%);
+    width: 420px; height: 580px;
+    opacity: 0.18;
+    animation: fadeUp 1.2s 0.5s ease both;
+  }
+
+  .helix-wrap svg { width: 100%; height: 100%; }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 40px 0;
+    margin-bottom: 0;
+  }
+
+  .stats-inner {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+  }
+
+  .stat-item {
+    padding: 0 40px;
+    border-right: 1px solid var(--border);
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .stat-item:first-child { padding-left: 0; }
+  .stat-item:last-child { border-right: none; }
+
+  .stat-number {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 48px;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .stat-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* ── SECTIONS ── */
+  section {
+    padding: 100px 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .section-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-tag::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h2 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 400;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    letter-spacing: -0.01em;
+  }
+
+  h2 em { font-style: italic; color: var(--accent); }
+
+  .section-lead {
+    font-size: 20px;
+    color: var(--text-dim);
+    font-weight: 300;
+    max-width: 640px;
+    margin-bottom: 60px;
+    line-height: 1.8;
+  }
+
+  /* ── DEFINITION BLOCK ── */
+  .definition-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 40px;
+    margin-bottom: 60px;
+    position: relative;
+  }
+
+  .definition-block::before {
+    content: 'DEFINITION';
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    color: var(--accent);
+    position: absolute;
+    top: -1px; left: 40px;
+    background: var(--surface);
+    padding: 0 8px;
+    transform: translateY(-50%);
+  }
+
+  .definition-block p {
+    font-size: 20px;
+    line-height: 1.85;
+    color: var(--text);
+    font-weight: 300;
+  }
+
+  /* ── DNA SPLIT ── */
+  .dna-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    margin-bottom: 80px;
+  }
+
+  .dna-cell {
+    background: var(--surface);
+    padding: 40px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .dna-cell:hover { border-color: var(--accent); }
+
+  .dna-cell::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .dna-cell:hover::after { opacity: 1; }
+
+  .dna-cell-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .dna-cell h3 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 26px;
+    font-weight: 400;
+    margin-bottom: 16px;
+  }
+
+  .dna-cell p {
+    font-size: 16px;
+    color: var(--text-dim);
+    line-height: 1.75;
+  }
+
+  /* ── GENE FAMILIES ── */
+  .gene-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    margin-bottom: 80px;
+  }
+
+  .gene-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 28px 20px;
+    text-align: center;
+    transition: all 0.3s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gene-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    transition: opacity 0.3s;
+    opacity: 0;
+  }
+
+  .gene-card.perf::before { background: var(--accent); }
+  .gene-card.rel::before { background: var(--blue); }
+  .gene-card.sec::before { background: var(--red); }
+  .gene-card.scal::before { background: var(--gold); }
+  .gene-card.org::before { background: #a855f7; }
+
+  .gene-card:hover { border-color: var(--border); transform: translateY(-4px); }
+  .gene-card:hover::before { opacity: 1; }
+
+  .gene-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .gene-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .gene-card.perf .gene-name { color: var(--accent); }
+  .gene-card.rel .gene-name { color: var(--blue); }
+  .gene-card.sec .gene-name { color: var(--red); }
+  .gene-card.scal .gene-name { color: var(--gold); }
+  .gene-card.org .gene-name { color: #a855f7; }
+
+  .gene-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* ── GENE SEQUENCE ── */
+  .gene-sequence {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px 40px;
+    margin-bottom: 80px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    overflow-x: auto;
+  }
+
+  .gene-sequence-title {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  .gene-row {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .gene-bit {
+    padding: 4px 10px;
+    border: 1px solid;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    border-radius: 2px;
+    cursor: default;
+    transition: all 0.2s;
+  }
+
+  .gene-bit:hover { transform: scale(1.05); }
+
+  .gene-bit.p { border-color: var(--accent); color: var(--accent); background: rgba(0,212,170,0.06); }
+  .gene-bit.r { border-color: var(--blue); color: var(--blue); background: rgba(77,159,255,0.06); }
+  .gene-bit.s { border-color: var(--red); color: var(--red); background: rgba(255,77,109,0.06); }
+  .gene-bit.sc { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.06); }
+  .gene-bit.o { border-color: #a855f7; color: #a855f7; background: rgba(168,85,247,0.06); }
+
+  /* ── FRAMEWORK PILLARS ── */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+  }
+
+  .pillar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 48px 40px;
+    position: relative;
+    transition: border-color 0.3s;
+  }
+
+  .pillar:hover { border-color: rgba(0,212,170,0.3); }
+
+  .pillar-num {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 64px;
+    color: var(--accent-dim);
+    line-height: 1;
+    position: absolute;
+    top: 32px; right: 40px;
+    font-style: italic;
+  }
+
+  .pillar h3 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 26px;
+    font-weight: 400;
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+
+  .pillar p {
+    font-size: 16px;
+    color: var(--text-dim);
+    line-height: 1.75;
+    margin-bottom: 24px;
+  }
+
+  .pillar-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .ptag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent-dim);
+    padding: 4px 10px;
+    background: var(--accent-glow);
+  }
+
+  /* ── RESEARCH QUESTIONS ── */
+  .questions-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .q-item {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    align-items: start;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 32px 0;
+    transition: all 0.2s;
+    cursor: default;
+  }
+
+  .q-item:first-child { border-top: 1px solid var(--border); }
+
+  .q-item:hover .q-text { color: var(--text); }
+
+  .q-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    padding-top: 4px;
+  }
+
+  .q-text {
+    font-size: 20px;
+    color: var(--text-dim);
+    font-style: italic;
+    font-weight: 300;
+    line-height: 1.6;
+    transition: color 0.2s;
+  }
+
+  /* ── INTERSECTIONS ── */
+  .intersect-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    margin-bottom: 80px;
+  }
+
+  .int-card {
+    border: 1px solid var(--border);
+    padding: 36px 28px;
+    background: var(--surface);
+    transition: all 0.3s;
+  }
+
+  .int-card:hover { border-color: rgba(0,212,170,0.3); background: var(--surface2); }
+
+  .int-icon { font-size: 32px; margin-bottom: 16px; display: block; }
+
+  .int-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .int-text {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  /* ── VISION TIMELINE ── */
+  .vision-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+
+  .vision-list::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--accent), transparent);
+  }
+
+  .vision-item {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 24px;
+    padding: 32px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .vision-dot {
+    width: 40px; height: 40px;
+    border: 1px solid var(--accent);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .vision-content h4 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 8px;
+  }
+
+  .vision-content p {
+    font-size: 16px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  /* ── CONTRIBUTION ── */
+  .contrib-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+
+  .contrib-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px 28px;
+    transition: all 0.3s;
+  }
+
+  .contrib-card:hover {
+    border-color: rgba(0,212,170,0.3);
+    background: var(--surface2);
+  }
+
+  .contrib-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .contrib-title {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 20px;
+    font-weight: 400;
+    margin-bottom: 10px;
+  }
+
+  .contrib-text {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  /* ── KEYWORDS ── */
+  .keyword-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 40px;
+  }
+
+  .keyword {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    transition: all 0.2s;
+    cursor: default;
+  }
+
+  .keyword:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-glow); }
+
+  /* ── CLOSING ── */
+  .closing {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    padding: 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .closing::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(201,168,76,0.04), transparent 70%);
+    pointer-events: none;
+  }
+
+  .closing-quote {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: clamp(24px, 3vw, 40px);
+    font-style: italic;
+    color: var(--text);
+    line-height: 1.5;
+    max-width: 700px;
+    margin: 0 auto 32px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .closing-quote em { color: var(--gold); }
+
+  .closing-author {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .footer-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-left {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  .footer-left strong { color: var(--text-dim); }
+
+  .footer-right {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  /* ── SCROLL REVEAL ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .nav-links { display: none; }
+    .stats-inner { grid-template-columns: repeat(2, 1fr); }
+    .gene-grid { grid-template-columns: repeat(2, 1fr); }
+    .dna-split, .pillars, .intersect-grid, .contrib-grid { grid-template-columns: 1fr; }
+    .helix-wrap { display: none; }
+    .closing { padding: 40px 24px; }
+  }
+
+  /* ── MONO TAG ── */
+  .mono {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  /* Status indicator */
+  .status-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">AGP // Architecture Genome Project</div>
+    <ul class="nav-links">
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#genome">Genome</a></li>
+      <li><a href="#framework">Framework</a></li>
+      <li><a href="#research">Research</a></li>
+      <li><a href="#vision">Vision</a></li>
+      <li><a href="#contribute">Contribute</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">
+      <span class="status-dot"></span>
+      Early-Stage Research Initiative &nbsp;·&nbsp; Foundational Software Architecture
+    </div>
+    <h1>The Architecture<br><em>Genome</em> Project</h1>
+    <div class="hero-subtitle">Modeling Software Systems as Evolving Biological Structures</div>
+    <div class="hero-byline">Created by <span>Kallol Chakrabarti</span> &nbsp;·&nbsp; Global Independent Researcher</div>
+    <p class="hero-description">
+      Every software system carries <strong>design DNA</strong>. Architectural decisions determine how systems scale, recover, adapt — and survive. This project introduces a structured framework to encode, simulate, and map that evolution.
+    </p>
+    <div class="cta-row">
+      <a href="#overview" class="btn-primary">Explore the Framework</a>
+      <a href="#contribute" class="btn-secondary">Contribute Research</a>
+    </div>
+  </div>
+
+  <!-- Helix SVG decoration -->
+  <div class="helix-wrap">
+    <svg viewBox="0 0 300 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#00d4aa" stop-opacity="0"/>
+          <stop offset="40%" stop-color="#00d4aa" stop-opacity="1"/>
+          <stop offset="60%" stop-color="#00d4aa" stop-opacity="1"/>
+          <stop offset="100%" stop-color="#00d4aa" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <!-- Left strand -->
+      <path d="M60,0 C60,50 240,100 240,150 C240,200 60,250 60,300 C60,350 240,400 240,450 C240,500 60,550 60,600" stroke="url(#hg)" stroke-width="1.5" fill="none"/>
+      <!-- Right strand -->
+      <path d="M240,0 C240,50 60,100 60,150 C60,200 240,250 240,300 C240,350 60,400 60,450 C60,500 240,550 240,600" stroke="url(#hg)" stroke-width="1.5" fill="none" opacity="0.6"/>
+      <!-- Rungs -->
+      <line x1="60" y1="37" x2="240" y2="113" stroke="#00d4aa" stroke-width="0.5" opacity="0.3"/>
+      <line x1="150" y1="75" x2="150" y2="75" stroke="#00d4aa" stroke-width="3" opacity="0.8"/>
+      <circle cx="150" cy="75" r="3" fill="#00d4aa" opacity="0.8"/>
+      <line x1="60" y1="113" x2="240" y2="37" stroke="#00d4aa" stroke-width="0.5" opacity="0.3"/>
+      <line x1="60" y1="187" x2="240" y2="263" stroke="#00d4aa" stroke-width="0.5" opacity="0.3"/>
+      <circle cx="150" cy="225" r="3" fill="#00d4aa" opacity="0.8"/>
+      <line x1="60" y1="263" x2="240" y2="187" stroke="#00d4aa" stroke-width="0.5" opacity="0.3"/>
+      <line x1="60" y1="337" x2="240" y2="413" stroke="#00d4aa" stroke-width="0.5" opacity="0.3"/>
+      <circle cx="150" cy="375" r="3" fill="#00d4aa" opacity="0.8"/>
+      <line x1="60" y1="413" x2="240" y2="337" stroke="#00d4aa" stroke-width="0.5" opacity="0.3"/>
+      <line x1="60" y1="487" x2="240" y2="563" stroke="#00d4aa" stroke-width="0.5" opacity="0.3"/>
+      <circle cx="150" cy="525" r="3" fill="#00d4aa" opacity="0.8"/>
+      <line x1="60" y1="563" x2="240" y2="487" stroke="#00d4aa" stroke-width="0.5" opacity="0.3"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ── STATS BAR ── -->
+<div class="stats-bar">
+  <div class="container">
+    <div class="stats-inner">
+      <div class="stat-item reveal">
+        <div class="stat-number">5</div>
+        <div class="stat-label">Gene Families</div>
+      </div>
+      <div class="stat-item reveal" style="animation-delay:0.1s">
+        <div class="stat-number">4</div>
+        <div class="stat-label">Core Research Pillars</div>
+      </div>
+      <div class="stat-item reveal" style="animation-delay:0.2s">
+        <div class="stat-number">5</div>
+        <div class="stat-label">Foundational Questions</div>
+      </div>
+      <div class="stat-item reveal" style="animation-delay:0.3s">
+        <div class="stat-number">∞</div>
+        <div class="stat-label">Architectural Combinations</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── OVERVIEW ── -->
+<section id="overview">
+  <div class="container">
+    <div class="section-tag">01 · Overview</div>
+    <h2>Software Architecture<br>as <em>Living Code</em></h2>
+    <p class="section-lead">Architectural decisions behave more like biological traits than static documentation. Every system has design DNA.</p>
+
+    <div class="definition-block reveal">
+      <p>The Architecture Genome Project is a software architecture research initiative that <strong>models architectural decisions as genetic structures</strong> in order to study system resilience, adaptability, and long-term design evolution. It explores how software systems can be encoded, analyzed, simulated under stress, recombined, and mapped across time.</p>
+    </div>
+
+    <div class="dna-split reveal">
+      <div class="dna-cell">
+        <div class="dna-cell-label">The Problem</div>
+        <h3>Static Docs Cannot Capture Living Systems</h3>
+        <p>Software architecture is traditionally captured as diagrams and specifications — frozen snapshots of systems that are constantly changing. This fails to model how design decisions interact, degrade, and evolve under real-world pressure.</p>
+      </div>
+      <div class="dna-cell">
+        <div class="dna-cell-label">The Proposition</div>
+        <h3>Treat Architecture Like Genetic Material</h3>
+        <p>By encoding architectural decisions as genes, we gain the ability to analyze, simulate, recombine, and track the evolutionary trajectory of system designs — building a rigorous, measurable science of architecture.</p>
+      </div>
+    </div>
+
+    <!-- Intersections -->
+    <div class="section-tag reveal">Sits at the Intersection of</div>
+    <div class="intersect-grid reveal">
+      <div class="int-card">
+        <span class="int-icon">🏗️</span>
+        <div class="int-title">Software Architecture Research</div>
+        <div class="int-text">Formal study of architectural patterns, their properties, trade-offs, and long-term behavior in production systems.</div>
+      </div>
+      <div class="int-card">
+        <span class="int-icon">🌐</span>
+        <div class="int-title">Distributed Systems Engineering</div>
+        <div class="int-text">Real-world constraints of networked, distributed computation and the architectural patterns that enable scale and reliability.</div>
+      </div>
+      <div class="int-card">
+        <span class="int-icon">🔬</span>
+        <div class="int-title">Complexity Science</div>
+        <div class="int-text">Emergent behaviors, phase transitions, and non-linear dynamics that arise in complex software ecosystems over time.</div>
+      </div>
+      <div class="int-card">
+        <span class="int-icon">🧬</span>
+        <div class="int-title">Evolutionary Modeling</div>
+        <div class="int-text">Applying principles of selection, mutation, recombination, and fitness to the study of how design paradigms emerge and persist.</div>
+      </div>
+      <div class="int-card">
+        <span class="int-icon">⚡</span>
+        <div class="int-title">Resilience Engineering</div>
+        <div class="int-text">Quantifying and improving a system's capacity to absorb disruption, recover from failure, and maintain function under pressure.</div>
+      </div>
+      <div class="int-card">
+        <span class="int-icon">📐</span>
+        <div class="int-title">Formal Systems Analysis</div>
+        <div class="int-text">Developing rigorous mathematical and computational models for understanding architectural decision spaces and their consequences.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── GENOME ── -->
+<section id="genome">
+  <div class="container">
+    <div class="section-tag">02 · Architectural Genome</div>
+    <h2>Every Decision<br>is a <em>Gene</em></h2>
+    <p class="section-lead">A system is decomposed into atomic architectural decisions — each encoded as a gene, organized into families that form the complete design genome.</p>
+
+    <div class="gene-grid reveal">
+      <div class="gene-card perf">
+        <span class="gene-icon">⚡</span>
+        <div class="gene-name">Performance</div>
+        <div class="gene-desc">Caching strategy, read/write separation, data locality, latency targets</div>
+      </div>
+      <div class="gene-card rel">
+        <span class="gene-icon">🛡️</span>
+        <div class="gene-name">Reliability</div>
+        <div class="gene-desc">Backup policy, failure recovery, fault tolerance, redundancy model</div>
+      </div>
+      <div class="gene-card sec">
+        <span class="gene-icon">🔐</span>
+        <div class="gene-name">Security</div>
+        <div class="gene-desc">Auth model, encryption posture, zero-trust topology, audit strategy</div>
+      </div>
+      <div class="gene-card scal">
+        <span class="gene-icon">📈</span>
+        <div class="gene-name">Scalability</div>
+        <div class="gene-desc">Horizontal vs vertical scaling, sharding, replication, elasticity</div>
+      </div>
+      <div class="gene-card org">
+        <span class="gene-icon">🏢</span>
+        <div class="gene-name">Organizational</div>
+        <div class="gene-desc">Team topology, ownership model, deployment cadence, coupling strategy</div>
+      </div>
+    </div>
+
+    <!-- Sample Gene Sequence -->
+    <div class="gene-sequence reveal">
+      <div class="gene-sequence-title">// Sample Architectural Genome — Distributed E-Commerce Platform</div>
+      <div class="gene-row">
+        <span class="gene-bit p">CACHE:redis-cluster</span>
+        <span class="gene-bit p">READ-WRITE:separated</span>
+        <span class="gene-bit p">LATENCY:p99&lt;50ms</span>
+        <span class="gene-bit sc">SCALE:horizontal</span>
+      </div>
+      <div class="gene-row">
+        <span class="gene-bit r">REPLICAS:3</span>
+        <span class="gene-bit r">RECOVERY:auto-failover</span>
+        <span class="gene-bit r">BACKUP:continuous</span>
+        <span class="gene-bit s">AUTH:oauth2+jwt</span>
+      </div>
+      <div class="gene-row">
+        <span class="gene-bit sc">TOPOLOGY:multi-region</span>
+        <span class="gene-bit sc">SHARD:hash-based</span>
+        <span class="gene-bit o">TEAMS:domain-aligned</span>
+        <span class="gene-bit o">DEPLOY:ci-cd/blue-green</span>
+      </div>
+      <div class="gene-row">
+        <span class="gene-bit p">PROTOCOL:grpc+rest</span>
+        <span class="gene-bit r">STATE:externalized</span>
+        <span class="gene-bit s">ENCRYPT:at-rest+transit</span>
+        <span class="gene-bit sc">ELASTIC:auto-scaling</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── FRAMEWORK ── -->
+<section id="framework">
+  <div class="container">
+    <div class="section-tag">03 · Core Research Framework</div>
+    <h2>Four Pillars of<br><em>Architectural Science</em></h2>
+    <p class="section-lead">The research framework rests on four interlocking pillars that together enable a complete science of architectural evolution.</p>
+
+    <div class="pillars reveal">
+      <div class="pillar">
+        <div class="pillar-num">I</div>
+        <h3>Gene Encoding &amp;<br>Taxonomy</h3>
+        <p>Architectural decisions are decomposed into atomic units and classified within a formal gene taxonomy. Each decision — from caching strategy to deployment topology — is encoded with its properties, constraints, and interdependencies.</p>
+        <div class="pillar-tags">
+          <span class="ptag">Formal Taxonomy</span>
+          <span class="ptag">Decision Theory</span>
+          <span class="ptag">Ontology</span>
+        </div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">II</div>
+        <h3>Survival Simulation &amp;<br>Fitness Metrics</h3>
+        <p>Architectural genomes are subjected to controlled stress conditions — traffic spikes, team turnover, security threats, budget constraints. The goal is to define quantifiable architectural fitness metrics and measure resilience empirically.</p>
+        <div class="pillar-tags">
+          <span class="ptag">Stress Testing</span>
+          <span class="ptag">Fitness Functions</span>
+          <span class="ptag">Resilience Scoring</span>
+        </div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">III</div>
+        <h3>Architectural<br>Recombination</h3>
+        <p>Two architectural genomes can be combined to generate hybrid systems. Rather than intuition-driven iteration, recombination enables experimental design evolution — crossing a high-throughput distributed system with a minimal monolith to explore the resulting design space.</p>
+        <div class="pillar-tags">
+          <span class="ptag">Crossover</span>
+          <span class="ptag">Hybrid Design</span>
+          <span class="ptag">Generative Architecture</span>
+        </div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-num">IV</div>
+        <h3>Evolutionary Mapping &amp;<br>Tree of Life</h3>
+        <p>A large-scale evolutionary map tracks architectural lineage, influence relationships, dominant paradigms, obsolete patterns, and long-term trends. This forms a conceptual Tree of Life for software system design — revealing which ideas survive, spread, and go extinct.</p>
+        <div class="pillar-tags">
+          <span class="ptag">Lineage Tracking</span>
+          <span class="ptag">Pattern Archaeology</span>
+          <span class="ptag">Trend Analysis</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── RESEARCH ── -->
+<section id="research">
+  <div class="container">
+    <div class="section-tag">04 · Research Questions</div>
+    <h2>Foundational<br><em>Open Questions</em></h2>
+    <p class="section-lead">This initiative investigates questions that define a new science of architectural genetics.</p>
+
+    <ol class="questions-list reveal">
+      <li class="q-item">
+        <div class="q-num">Q.01</div>
+        <div class="q-text">Can architectural decisions be formally encoded into a stable, universal gene taxonomy?</div>
+      </li>
+      <li class="q-item">
+        <div class="q-num">Q.02</div>
+        <div class="q-text">How can architectural fitness be quantified — and what metrics best predict long-term system survival?</div>
+      </li>
+      <li class="q-item">
+        <div class="q-num">Q.03</div>
+        <div class="q-text">Which decision patterns correlate most strongly with resilience, adaptability, and longevity?</div>
+      </li>
+      <li class="q-item">
+        <div class="q-num">Q.04</div>
+        <div class="q-text">Can evolutionary simulation reliably generate improved system designs beyond human intuition?</div>
+      </li>
+      <li class="q-item">
+        <div class="q-num">Q.05</div>
+        <div class="q-text">Do architectural paradigms follow measurable evolutionary dynamics — selection pressure, drift, extinction?</div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── VISION ── -->
+<section id="vision">
+  <div class="container">
+    <div class="section-tag">05 · Long-Term Vision</div>
+    <h2>Building a<br><em>Research Foundation</em></h2>
+    <p class="section-lead">The Architecture Genome Project aims to establish a durable, open, and rigorous scientific foundation for the study of software system design.</p>
+
+    <div class="vision-list reveal">
+      <div class="vision-item">
+        <div class="vision-dot">A</div>
+        <div class="vision-content">
+          <h4>A Formal Vocabulary for Architectural Genetics</h4>
+          <p>A shared, standardized language for describing architectural decisions, their properties, and relationships — enabling rigorous cross-system comparison and communication.</p>
+        </div>
+      </div>
+      <div class="vision-item">
+        <div class="vision-dot">B</div>
+        <div class="vision-content">
+          <h4>A Computational Model for System Design Analysis</h4>
+          <p>Mathematical and computational frameworks that allow formal reasoning about architectural decision spaces, trade-offs, and evolutionary dynamics.</p>
+        </div>
+      </div>
+      <div class="vision-item">
+        <div class="vision-dot">C</div>
+        <div class="vision-content">
+          <h4>A Simulation Framework for Resilience Testing</h4>
+          <p>Tools and models to stress-test architectural genomes under controlled environmental conditions, producing empirical, reproducible resilience data.</p>
+        </div>
+      </div>
+      <div class="vision-item">
+        <div class="vision-dot">D</div>
+        <div class="vision-content">
+          <h4>A Public Dataset of Encoded Architectural Genomes</h4>
+          <p>An open, community-contributed dataset of real-world system architectures encoded in the genome format — the foundation for large-scale empirical research.</p>
+        </div>
+      </div>
+      <div class="vision-item">
+        <div class="vision-dot">E</div>
+        <div class="vision-content">
+          <h4>An Evolutionary Map of Software System Design</h4>
+          <p>A living, interactive map tracking the lineage, influence, and extinction of architectural patterns across the history of software — the Tree of Life for system design.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── CONTRIBUTE ── -->
+<section id="contribute">
+  <div class="container">
+    <div class="section-tag">06 · Contribute</div>
+    <h2>Who This<br><em>Is For</em></h2>
+    <p class="section-lead">This is an early-stage research initiative welcoming collaborators interested in rigorous, foundational exploration. Potential contribution areas span theory, engineering, and empirical research.</p>
+
+    <div class="contrib-grid reveal">
+      <div class="contrib-card">
+        <div class="contrib-number">AREA.01</div>
+        <div class="contrib-title">Gene Taxonomy Proposals</div>
+        <div class="contrib-text">Defining and formalizing the vocabulary of architectural genes — their types, properties, constraints, and classification hierarchies.</div>
+      </div>
+      <div class="contrib-card">
+        <div class="contrib-number">AREA.02</div>
+        <div class="contrib-title">Data Models for Architectural Encoding</div>
+        <div class="contrib-text">Schema design and data structures for representing architectural genomes in a machine-readable, analyzable format.</div>
+      </div>
+      <div class="contrib-card">
+        <div class="contrib-number">AREA.03</div>
+        <div class="contrib-title">Simulation Engines for Stress Testing</div>
+        <div class="contrib-text">Software tools that simulate environmental pressures on architectural genomes and measure the resulting fitness outcomes.</div>
+      </div>
+      <div class="contrib-card">
+        <div class="contrib-number">AREA.04</div>
+        <div class="contrib-title">Visualization of Design DNA</div>
+        <div class="contrib-text">Interactive visualizations of architectural genomes, evolutionary trees, and fitness landscapes for research and communication.</div>
+      </div>
+      <div class="contrib-card">
+        <div class="contrib-number">AREA.05</div>
+        <div class="contrib-title">Case Studies of Real Architectures</div>
+        <div class="contrib-text">Rigorous encoding and analysis of well-known production systems — from monoliths to microservices — as reference genomes.</div>
+      </div>
+      <div class="contrib-card">
+        <div class="contrib-number">AREA.06</div>
+        <div class="contrib-title">Mathematical Fitness Models</div>
+        <div class="contrib-text">Formal mathematical frameworks for defining, computing, and comparing architectural fitness across dimensions and time.</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 48px;" class="reveal">
+      <div class="section-tag">Audience</div>
+      <div class="keyword-cloud">
+        <span class="keyword">Software Architects</span>
+        <span class="keyword">Distributed Systems Researchers</span>
+        <span class="keyword">Systems Engineers</span>
+        <span class="keyword">Evolutionary Computation Researchers</span>
+        <span class="keyword">Complexity Scientists</span>
+        <span class="keyword">Open-Source Contributors</span>
+        <span class="keyword">Resilience Engineers</span>
+        <span class="keyword">Computer Scientists</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── KEYWORDS ── -->
+<section style="padding: 60px 0;">
+  <div class="container">
+    <div class="section-tag">Keywords</div>
+    <div class="keyword-cloud reveal">
+      <span class="keyword">Software Architecture</span>
+      <span class="keyword">System Design</span>
+      <span class="keyword">Architectural Decisions</span>
+      <span class="keyword">Distributed Systems</span>
+      <span class="keyword">Resilience Engineering</span>
+      <span class="keyword">Evolutionary Computation</span>
+      <span class="keyword">System Modeling</span>
+      <span class="keyword">Scalability</span>
+      <span class="keyword">Fault Tolerance</span>
+      <span class="keyword">Architectural Fitness</span>
+      <span class="keyword">Design Evolution</span>
+      <span class="keyword">Complexity Science</span>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ── CLOSING ── -->
+<section style="padding: 80px 0;">
+  <div class="container">
+    <div class="closing reveal">
+      <div class="closing-quote">
+        "Software systems are not static artifacts.<br>They <em>evolve under pressure</em>.<br>The Architecture Genome Project seeks to model that evolution."
+      </div>
+      <div class="closing-author">Kallol Chakrabarti &nbsp;·&nbsp; Global Independent Researcher &nbsp;·&nbsp; Architecture Genome Project</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <strong>The Architecture Genome Project</strong><br>
+        Created by Kallol Chakrabarti · Global Independent Researcher
+      </div>
+      <div class="footer-right">
+        <span class="status-dot"></span>
+        Early-Stage Research Initiative
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Scroll reveal
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => {
+        entry.target.classList.add('visible');
+      }, 80);
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+
+reveals.forEach(el => observer.observe(el));
+
+// Stagger children
+document.querySelectorAll('.gene-grid, .contrib-grid, .intersect-grid, .stats-inner, .pillars').forEach(grid => {
+  [...grid.children].forEach((child, i) => {
+    child.style.transitionDelay = `${i * 0.07}s`;
+  });
+});
+</script>
+</body>
+</html>
